@@ -1,0 +1,75 @@
+<?php
+ini_set( 'display_startup_errors', '0' );
+ini_set( 'display_errors', '1' );
+require_once($_SERVER['DOCUMENT_ROOT'].
+	'/speel6/sites/default/civicrm.settings.php');
+require_once 'CRM/Core/Config.php';
+$config =& CRM_Core_Config::singleton( );
+
+/*
+ * check all active organizations that 
+ * 1) have been created longer than 6 months ago
+ * 2) have not been updated in the last 6 months
+ * 3) no relations have been updated in the last 6 months
+ * 4) do not have a corresponding Drupal user that has blogged
+ *    in the last 6 months
+ * 5) have not clicked a newsletter in the last 6 months
+ * 
+ * set each of those organizations to 'passive' 
+ * 
+ */
+$updatedOrgs = 0;
+$selectOrg = "SELECT * FROM civicrm_contact a 
+  LEFT JOIN civicrm_value_kabissa b ON a.id = b.entity_id
+  WHERE contact_type = 'Organization'
+  AND is_deleted = 0
+  AND status_id NOT IN (5, 6)
+  AND signup_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+  AND last_updated_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+$daoOrg = CRM_Core_DAO::executeQuery($selectOrg);
+while ($daoOrg->fetch()) {
+  $setToPassive = TRUE;
+  /*
+   * check if organization has any relations of type Employer/Employee
+   *
+   */
+  $selectEmployee = "SELECT * FROM civicrm_relationship 
+    WHERE relationship_type_id = 4 
+    AND contact_id_b = ".$daoOrg->id;
+  $daoEmployee = CRM_Core_DAO::executeQuery($selectEmployee);
+  while ($daoEmployee) {
+    /*
+     * if start or end date of relationship is in the last 6 months,
+     * organization is seen as active
+     */
+    $testDate = new DateTime("-6 months");
+    $sqlTestDate = $testDate->format('Ymd');
+    if ($daoEmployee->start_date >= $sqlTestDate || $daoEmployee->end_date >= $sqlTestDate) {
+      $setToPassive = FALSE;
+    }
+    /*
+     * if contact still to be set passive, check if org has a Drupal user
+     */
+    if ($setToPassive) {
+      $selectDrupalUser = "SELECT uf_id FROM civicrm_uf_match WHERE contact_id = ".$daoEmployee->contact_id_a;
+      $daoDrupalUser = CRM_Core_DAO::executeQuery($selectDrupalUser);
+      if ($daoDrupalUser->fetch()) {
+        /*
+         * check if the user has blogged in the last 6 months
+         * or has clicked a newsletter link
+         */
+      }
+    }
+  }
+  /*
+   * if still set to passive, set organization to passive
+   */
+  if ($setToPassive) {
+    $updateOrg = "UPDATE civicrm_value_kabissa SET status_id = 6 WHERE entity_id = ".$daoOrg->id;
+    CRM_Core_DAO::executeQuery($updateOrg);
+    $updatedOrgs++;
+  }
+}
+echo "<p>Execution has finished, $updatedOrgs set to passive.</p>";
+
+    
