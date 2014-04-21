@@ -1,11 +1,10 @@
 <?php
-ini_set( 'display_startup_errors', '0' );
 ini_set( 'display_errors', '1' );
 /*
  * bootstrap CiviCRM
  */
 require_once($_SERVER['DOCUMENT_ROOT'].
-	'/speel6/sites/default/civicrm.settings.php');
+	'/sites/default/civicrm.settings.php');
 require_once 'CRM/Core/Config.php';
 require_once('api/v2/GroupContact.php');
 require_once('api/v2/Contact.php');
@@ -78,7 +77,7 @@ while ($daoOrg->fetch()) {
           /*
            * bootstrap Drupal
            */
-          $drupal_path = $_SERVER['DOCUMENT_ROOT'].'/speel6';
+          $drupal_path = $_SERVER['DOCUMENT_ROOT'];
           chdir($drupal_path);
           define('DRUPAL_ROOT', $drupal_path);
           require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
