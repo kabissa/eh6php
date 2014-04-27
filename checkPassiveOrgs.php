@@ -4,7 +4,7 @@ ini_set('display_errors', '1');
  * bootstrap CiviCRM
  */
 require_once($_SERVER['DOCUMENT_ROOT'].
-	'/sites/default/civicrm.settings.php');
+	'/sites/kabissa.org/civicrm.settings.php');
 require_once 'CRM/Core/Config.php';
 require_once('api/v2/GroupContact.php');
 require_once('api/v2/Contact.php');
