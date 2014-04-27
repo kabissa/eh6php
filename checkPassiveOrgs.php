@@ -26,7 +26,7 @@ $updatedOrgs = 0;
 $selectOrg = "SELECT a.id FROM civicrm_contact a LEFT JOIN civicrm_value_kabissa b ON a.id = b.entity_id
   WHERE contact_type = 'Organization' AND is_deleted = 0
   AND status_id NOT IN (5, 6) AND signup_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-  AND last_updated_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH) LIMIT 10";
+  AND last_updated_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH) LIMIT 250";
 $daoOrg = CRM_Core_DAO::executeQuery($selectOrg);
 while ($daoOrg->fetch()) {
   $setToPassive = TRUE;
