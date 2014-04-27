@@ -1,5 +1,5 @@
 <?php
-ini_set( 'display_errors', '1' );
+ini_set('display_errors', '1');
 /*
  * bootstrap CiviCRM
  */
@@ -82,16 +82,33 @@ while ($daoOrg->fetch()) {
           define('DRUPAL_ROOT', $drupal_path);
           require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
           drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
-          $selectDrupalBlog = "SELECT uid, type, created, changed FROM {node}"
-          . " WHERE type = 'blog' AND uid = ".$daoDrupalUser->uf_id;
-          $userBlogs = db_query($selectDrupalBlog);
-          while ( $userBlog = db_fetch_object($userBlogs)) {
-            $createDate = format_date($userBlog->created, 'created', 'Ymd');
-            $changeDate = format_date($userBlog->changed, 'changed', 'Ymd');
-            if ($createdDate > $testDate || $changeDate > $testDate) {
-              $setToPassive == FALSE;
+          /*
+           * check if user has any Drupal activity
+           */
+          $selectDrupalNode = "SELECT created, changed FROM {node} WHERE uid = ".
+            $daoDrupalUser->uf_id;
+          $userNodes = db_query($selectDrupalNode);
+          while ( $userNode = db_fetch_object($userNodes)) {
+            $createDate = format_date($userNode->created, 'created', 'Ymd');
+            $changeDate = format_date($userNode->changed, 'changed', 'Ymd');
+            if ($createdDate > $sqlTestDate || $changeDate > $sqlTestDate) {
+              $setToPassive = FALSE;
             }
-          }              
+          }
+          if ($setToPassive == TRUE) {
+            /*
+             * check if Drupal user has made any comments
+             */
+            $selectUserComments = "SELECT timestamp FROM {comments} WHERE uid = ".
+              $daoDrupalUser->uf_id;
+            $userComments = db_query($selectUserComments);
+            while ($userComment = db_fetch_object($userComments)) {
+              $commentDate = format_date($userComment->timestamp, 'comment', 'Ymd');
+              if ($commentDate > $sqlTestDate) {
+                $setToPassive = FALSE;
+              }
+            }
+          }
         }
       }
     }
@@ -105,3 +122,4 @@ while ($daoOrg->fetch()) {
     $updatedOrgs++;
   }
 }
+echo "<h3>Finished setting passive organizations, ".$updatedOrgs." set to passive</h3>";
