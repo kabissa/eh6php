@@ -1,9 +1,9 @@
 <?php
 ini_set('display_errors', '1');
 set_time_limit(0);
-define('PASSIVE_ORG_GROUP_ID', 4);
-define('PASSIVE_CONTACT_GROUP_ID', 5);
-define('CONFIG_PATH', $_SERVER['DOCUMENT_ROOT'].'/speel6/sites/default/civicrm.settings.php');
+define('PASSIVE_ORG_GROUP_ID', 135);
+define('PASSIVE_CONTACT_GROUP_ID', 136);
+define('CONFIG_PATH', $_SERVER['DOCUMENT_ROOT'].'/sites/kabissa.org/civicrm.settings.php');
 /*
  * initialize CiviCRM
  */
@@ -80,17 +80,10 @@ while ($daoOrg->fetch()) {
         $selectDrupalUser = "SELECT uf_id FROM civicrm_uf_match WHERE contact_id = ".$daoEmployee->contact_id_a;
         $daoDrupalUser = CRM_Core_DAO::executeQuery($selectDrupalUser);
         if ($daoDrupalUser->fetch()) {
-          /*
-           * bootstrap Drupal
-           */
-          //$drupal_path = $_SERVER['DOCUMENT_ROOT'];
-          $drupal_path = '/var/www/speel6';
+          $drupal_path = $_SERVER['DOCUMENT_ROOT'];
           chdir($drupal_path);
-          //define('DRUPAL_ROOT', $drupal_path);
-          //CRM_Core_Error::debug('drupal', DRUPAL_ROOT);
-          //temp
-          define('DRUPAL_ROOT', '/var/www/speel6');
-          require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
+          define('DRUPAL_ROOT', $drupal_path);
+          require_once DRUPAL_ROOT . '/includes/bootstrap.inc';          
           drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
           /*
            * check if user has any Drupal activity
