@@ -1,10 +1,13 @@
 <?php
 ini_set('display_errors', '1');
+set_time_limit(0);
+define('PASSIVE_ORG_GROUP_ID', 4);
+define('PASSIVE_CONTACT_GROUP_ID', 5);
+define('CONFIG_PATH', $_SERVER['DOCUMENT_ROOT'].'/speel6/sites/default/civicrm.settings.php');
 /*
- * bootstrap CiviCRM
+ * initialize CiviCRM
  */
-require_once($_SERVER['DOCUMENT_ROOT'].
-	'/sites/kabissa.org/civicrm.settings.php');
+require_once(CONFIG_PATH);
 require_once 'CRM/Core/Config.php';
 require_once('api/v2/GroupContact.php');
 require_once('api/v2/Contact.php');
@@ -19,17 +22,19 @@ $config =& CRM_Core_Config::singleton( );
  *    in the last 6 months
  * 5) have not clicked a newsletter in the last 6 months
  * 
- * set each of those organizations to 'passive' 
+ * add each of the organizations to the group Passive Organizations
+ * and all related contactpersons to the group Contactpersons of Passive Organizations
  * 
  */
 $updatedOrgs = 0;
 $selectOrg = "SELECT a.id FROM civicrm_contact a LEFT JOIN civicrm_value_kabissa b ON a.id = b.entity_id
   WHERE contact_type = 'Organization' AND is_deleted = 0
   AND status_id NOT IN (5, 6) AND signup_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
-  AND last_updated_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH) LIMIT 250";
+  AND last_updated_date < DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
 $daoOrg = CRM_Core_DAO::executeQuery($selectOrg);
 while ($daoOrg->fetch()) {
   $setToPassive = TRUE;
+  $relatedContactPersons = array();
   /*
    * check if organization has any relations of type Employer/Employee
    *
@@ -39,6 +44,7 @@ while ($daoOrg->fetch()) {
     AND contact_id_b = ".$daoOrg->id;
   $daoEmployee = CRM_Core_DAO::executeQuery($selectEmployee);
   while ($daoEmployee->fetch()) {
+    $relatedContactPersons[] = $daoEmployee->contact_id_a;
     /*
      * if start or end date of relationship is in the last 6 months,
      * organization is seen as active
@@ -77,9 +83,13 @@ while ($daoOrg->fetch()) {
           /*
            * bootstrap Drupal
            */
-          $drupal_path = $_SERVER['DOCUMENT_ROOT'];
+          //$drupal_path = $_SERVER['DOCUMENT_ROOT'];
+          $drupal_path = '/var/www/speel6';
           chdir($drupal_path);
-          define('DRUPAL_ROOT', $drupal_path);
+          //define('DRUPAL_ROOT', $drupal_path);
+          //CRM_Core_Error::debug('drupal', DRUPAL_ROOT);
+          //temp
+          define('DRUPAL_ROOT', '/var/www/speel6');
           require_once DRUPAL_ROOT . '/includes/bootstrap.inc';
           drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
           /*
@@ -114,12 +124,24 @@ while ($daoOrg->fetch()) {
     }
   }
   /*
-   * if still set to passive, set organization to passive
+   * if still set to passive, add organization and its contactpersons to groups
    */
   if ($setToPassive == TRUE) {
-    $updateOrg = "UPDATE civicrm_value_kabissa SET status_id = 6 WHERE entity_id = ".$daoOrg->id;
-    CRM_Core_DAO::executeQuery($updateOrg);
+    $orgParams = array(
+      'version'       =>  3,
+      'contact_id'    =>  $daoOrg->id,
+      'group_id'      =>  PASSIVE_ORG_GROUP_ID
+    );
+    civicrm_group_contact_add($orgParams);
+    foreach ($relatedContactPersons as $relatedContactId) {
+      $contactParams = array(
+        'version'     =>  3,
+        'contact_id'  =>  $relatedContactId,
+        'group_id'    =>  PASSIVE_CONTACT_GROUP_ID
+      );
+      $contactResult = civicrm_group_contact_add($contactParams);
+    }
     $updatedOrgs++;
   }
 }
-echo "<h3>Finished setting passive organizations, ".$updatedOrgs." set to passive</h3>";
+echo "<h3>Finished setting passive organizations, ".$updatedOrgs." added to group Passive Organizations</h3>";

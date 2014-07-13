@@ -27,8 +27,6 @@ while ($dao_address->fetch()) {
         'group_id'      =>  $group_id
     );
     $result = civicrm_group_contact_add($params);
-    CRM_Core_Error::debug("result", $result);
-    CRM_Core_Error::debug("aprams", $params);
     
     /*
      * set contact to is_deleted
