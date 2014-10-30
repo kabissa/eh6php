@@ -28,6 +28,8 @@ $config = CRM_Core_Config::singleton( );
 
 $suspects = array();
 $groupMembers = array();
+$countFlagged = 0;
+$countTrashed = 0;
 
 $contacts = getContactsToBeChecked();
 foreach ($contacts as $contact) {
@@ -35,7 +37,8 @@ foreach ($contacts as $contact) {
     if (isInSpecialGroups($contact['contact_id']) == TRUE) {
       $groupmembers[] = $contact['contact_id'];
     } 
-    if (isSuspect($contact['display_name']) || isSuspect($contact['email'])) {
+    if (isSuspectName($contact['display_name']) == TRUE || 
+      isSuspectEmail($contact['email']) == TRUE) {
       $suspects[] = $contact['contact_id'];
     }
   }
@@ -43,12 +46,13 @@ foreach ($contacts as $contact) {
 unset($contacts);
 foreach ($suspects as $suspectContactId) {
   if (in_array($groupMembers)) {
-    processGroupMembersFlag($suspectContactId);
+    processFlag($suspectContactId);
+    $countFlagged++;
   } else {
     processTrash($suspectContactId);
+    $countTrashed++;
   }
 }
-
 echo "<p>".$countTrashed." contacts trashed, ".$countFlagged.
   " flagged as ToBeSpamChecked</p>";
 /**
@@ -66,4 +70,40 @@ function getContactsToBeChecked() {
   } else {
     return array();
   }
+}
+/**
+ * Function to check if the contact has been participant at any event
+ */
+function isParticipant($contactId) {
+  return FALSE;
+}
+/**
+ * Function to check if the contact is member of one of the special groups
+ */
+function isInSpecialGroups($contactId) {
+  return FALSE;
+}
+/**
+ * Function to check if the name has a digit in it and is therefore suspect
+ */
+function isSuspectName($name) {
+  return FALSE;
+}
+/**
+ * Function to check if the email address is suspect
+ */
+function isSuspectEmail($email) {
+  return FALSE;
+}
+/**
+ * Function to flag contacts as ToBeSpamChecked
+ */
+function processFlag($contactId) {
+  
+}
+/**
+ * Function to trash contacts
+ */
+function processTrash($contactId) {
+  
 }
