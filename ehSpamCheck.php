@@ -129,7 +129,7 @@ function is_suspect_email($email) {
     $email_second_part = split_email_second_part($email_parts[1]);
     if (!empty($email_second_part) && in_array($email_second_part['ext'], $valid_extensions) 
         && in_array($email_second_part['org'], $suspect_email_orgs)) {
-        return check_email_suspect($email);
+        return is_suspect_name($email_parts[0]);
     }
   }
   return FALSE;
