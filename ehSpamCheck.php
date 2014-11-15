@@ -18,7 +18,8 @@ set_time_limit(0);
 define('EH_CONTACTLIMIT', 50);
 define('EH_SPECIALGROUPS', '9:3:102');
 define('EH_TAG_ID', 35);
-
+define('EH_SUSPECT_EMAIL', 'gmail:yahoo:hotmail:aol');
+define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
 // to be changed for local/server runs
 require_once($_SERVER['DOCUMENT_ROOT'].
 	'/speel6/sites/default/civicrm.settings.php');
@@ -119,7 +120,32 @@ function is_suspect_name($name) {
  * Function to check if the email address is suspect
  */
 function is_suspect_email($email) {
+  $valid_extensions = explode(':', EH_EMAIL_EXTENSIONS);
+  $suspect_email_orgs = explode(':', EH_SUSPECT_EMAIL);
+  $email_parts = explode('@', $email);
+  if (count($email_parts) > 2) {
+    return TRUE;
+  } else {
+    $email_second_part = split_email_second_part($email_parts[1]);
+    if (!empty($email_second_part) && in_array($email_second_part['ext'], $valid_extensions) 
+        && in_array($email_second_part['org'], $suspect_email_orgs)) {
+        return check_email_suspect($email);
+    }
+  }
   return FALSE;
+}
+/**
+ * Function to split second part of emailadress e.g. gmail.com becomes
+ * ['org'] = gmail and ['ext'] = .com
+ */
+function split_email_second_part($email_part) {
+  $email_second_part = array();
+  $split = strpos($email_part, '.');
+  if ($split != FALSE) {
+    $email_second_part['org'] = substr($email_part, 0, $split);
+    $email_second_part['ext'] = substr($email_part, $split);
+  }
+  return $email_second_part;
 }
 /**
  * Function to flag contacts as ToBeSpamChecked
