@@ -20,6 +20,7 @@ define('EH_SPECIALGROUPS', '9:3:102');
 define('EH_TAG_ID', 35);
 define('EH_SUSPECT_EMAIL', 'gmail:yahoo:hotmail:aol');
 define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
+
 // to be changed for local/server runs
 require_once($_SERVER['DOCUMENT_ROOT'].
 	'/speel6/sites/default/civicrm.settings.php');
@@ -151,11 +152,23 @@ function split_email_second_part($email_part) {
  * Function to flag contacts as ToBeSpamChecked
  */
 function process_flag($contact_id) {
-  
+  if (!empty($contact_id)) {
+    $params = array(
+      'version' => 3,
+      'entity_id' => $contact_id,
+      'tag_id' => EH_TAG_ID);
+    civicrm_api('EntityTag', 'Create', $params);
+  }
 }
 /**
  * Function to trash contacts
  */
 function process_trash($contact_id) {
-  
+  if (!empty($contact_id)) {
+    $params = array(
+      'version' => 3,
+      'id' => $contact_id,
+      'is_deleted' => 1);
+    civicrm_api('Contact', 'Update', $params);
+  }
 }
