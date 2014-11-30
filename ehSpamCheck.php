@@ -22,8 +22,7 @@ define('EH_SUSPECT_EMAIL', 'gmail:yahoo:hotmail:aol');
 define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
 
 // to be changed for local/server runs
-require_once($_SERVER['DOCUMENT_ROOT'].
-	'/speel6/sites/default/civicrm.settings.php');
+require_once($_SERVER['DOCUMENT_ROOT'].'/sites/kabissa.org/civicrm.settings.php');
 
 require_once 'CRM/Core/Config.php';
 $config = CRM_Core_Config::singleton( );
