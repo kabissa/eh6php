@@ -38,14 +38,14 @@ foreach ($contacts as $contact) {
   if (is_participant($contact['contact_id']) == FALSE) {
     if (is_in_special_groups($contact['contact_id']) == TRUE) {
       $group_members[] = $contact['contact_id'];
-    } 
-    if (is_suspect_name($contact['display_name']) == TRUE || 
-      is_suspect_email($contact['email']) == TRUE) {
+    }
+    if (is_contact_suspect($contact) == TRUE) {
       $suspects[] = $contact['contact_id'];
     }
   }
 }
 unset($contacts);
+
 foreach ($suspects as $suspect_contact_id) {
   if (in_array($group_members)) {
     process_flag($suspect_contactId);
@@ -55,8 +55,23 @@ foreach ($suspects as $suspect_contact_id) {
     $count_trashed++;
   }
 }
-echo "<p>".$count_trashed." contacts trashed, ".$count_flagged.
-  " flagged as ToBeSpamChecked</p>";
+CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/dashboard', 'reset=1'));
+/**
+ * Function to check contact
+ * 
+ * @param array $contact
+ * @return boolean $is_contact_suspect
+ */
+function is_contact_suspect($contact) {
+  $is_contact_suspect = FALSE;
+  if (isset($contact['display_name'])) {
+    $is_contact_suspect = is_suspect_name($contact['display_name']);
+  }
+  if (isset($contact['email']) && $is_contact_suspect == FALSE) {
+    $is_contact_suspect = is_suspect_email($contact['email']);
+  }
+  return $is_contact_suspect;
+}
 /**
  * Function to get contacts to be checked
  */
@@ -121,14 +136,14 @@ function is_suspect_name($name) {
  * Function to check if the email address is suspect
  */
 function is_suspect_email($email) {
-  $valid_extensions = explode(':', EH_EMAIL_EXTENSIONS);
+  $suspect_extensions = explode(':', EH_EMAIL_EXTENSIONS);
   $suspect_email_orgs = explode(':', EH_SUSPECT_EMAIL);
   $email_parts = explode('@', $email);
   if (count($email_parts) > 2) {
     return TRUE;
   } else {
     $email_second_part = split_email_second_part($email_parts[1]);
-    if (!empty($email_second_part) && in_array($email_second_part['ext'], $valid_extensions) 
+    if (!empty($email_second_part) && in_array($email_second_part['ext'], $suspect_extensions) 
         && in_array($email_second_part['org'], $suspect_email_orgs)) {
         return is_suspect_name($email_parts[0]);
     }
