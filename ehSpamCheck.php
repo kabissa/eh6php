@@ -16,7 +16,7 @@ set_time_limit(0);
  *             with if they are suspect
  */
 define('EH_CONTACTLIMIT', 50);
-define('EH_SPECIALGROUPS', '9:3:102');
+define('EH_SPECIALGROUPS', '3:9:22:48:51:102:119');
 define('EH_TAG_ID', 35);
 define('EH_SUSPECT_EMAIL', 'gmail:yahoo:hotmail:aol');
 define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
