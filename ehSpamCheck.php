@@ -23,6 +23,7 @@ define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
 
 // to be changed for local/server runs
 require_once($_SERVER['DOCUMENT_ROOT'].'/sites/kabissa.org/civicrm.settings.php');
+//require_once($_SERVER['DOCUMENT_ROOT'].'/speel6/sites/default/civicrm.settings.php');
 
 require_once 'CRM/Core/Config.php';
 $config = CRM_Core_Config::singleton( );
@@ -46,15 +47,14 @@ foreach ($contacts as $contact) {
 unset($contacts);
 
 foreach ($suspects as $suspect_contact_id) {
-  if (in_array($group_members)) {
-    process_flag($suspect_contactId);
+  if (in_array($suspect_contact_id, $group_members)) {
+    process_flag($suspect_contact_id);
     $count_flagged++;
   } else {
     process_trash($suspect_contact_id);
     $count_trashed++;
   }
 }
-CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/dashboard', 'reset=1'));
 /**
  * Function to check contact
  * 
