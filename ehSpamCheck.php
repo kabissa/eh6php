@@ -35,6 +35,7 @@ $count_trashed = 0;
 
 $contacts = get_contacts_to_be_checked();
 foreach ($contacts as $contact) {
+  echo "<p>Processed contact ".$contact['contact_id']."</p>";
   if (is_participant($contact['contact_id']) == FALSE) {
     if (is_in_special_groups($contact['contact_id']) == TRUE) {
       $group_members[] = $contact['contact_id'];
@@ -79,7 +80,7 @@ function get_contacts_to_be_checked() {
     'version' => 3,
     'is_deleted' => 0,
     'contact_type' => 'Individual',
-    'options' => array('limit' => EH_CONTACTLIMIT));
+    'rowCount' => EH_CONTACTLIMIT);
   $contacts = civicrm_api('Contact', 'Get', $params);
   if (!civicrm_error($contacts)) {
     return $contacts['values'];
