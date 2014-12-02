@@ -72,6 +72,7 @@ function is_linked_to_org($contact_id) {
   $dao = CRM_Core_DAO::executeQuery($query, $params);
   if ($dao->fetch()) {
     if ($dao->count_relationship > 0) {
+      echo '<p>Contact '.$contact_id.'is linked to org</p>';      
       return TRUE;
     }
   }
@@ -119,6 +120,7 @@ function is_participant($contact_id) {
   $dao = CRM_Core_DAO::executeQuery($query, $params);
   if ($dao->fetch()) {
     if ($dao->count_participant > 0) {
+      echo '<p>Contact '.$contact_id.'is a participant</p>';
       return TRUE;
     }
   }
