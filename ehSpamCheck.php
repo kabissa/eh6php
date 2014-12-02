@@ -15,11 +15,12 @@ set_time_limit(0);
  * EH_TAG_ID - the special tag that members of the groups above will be flagged
  *             with if they are suspect
  */
-define('EH_CONTACTLIMIT', 50);
+define('EH_CONTACTLIMIT', 2500);
 define('EH_SPECIALGROUPS', '3:9:22:48:51:102:119');
 define('EH_TAG_ID', 35);
 define('EH_SUSPECT_EMAIL', 'gmail:yahoo:hotmail:aol');
 define('EH_EMAIL_EXTENSIONS', '.com:.co.uk');
+define('EH_PROCESSED_GROUP', 138);
 
 // to be changed for local/server runs
 require_once($_SERVER['DOCUMENT_ROOT'].'/sites/kabissa.org/civicrm.settings.php');
@@ -30,31 +31,67 @@ $config = CRM_Core_Config::singleton( );
 
 $suspects = array();
 $group_members = array();
-$count_flagged = 0;
-$count_trashed = 0;
+$log_flagged = array();
+$log_trashed = array();
 
-$contacts = get_contacts_to_be_checked();
-foreach ($contacts as $contact) {
-  echo "<p>Processed contact ".$contact['contact_id']."</p>";
-  if (is_participant($contact['contact_id']) == FALSE && is_linked_to_org($contact['contact_id']) == FALSE) {
-    if (is_in_special_groups($contact['contact_id']) == TRUE) {
-      $group_members[] = $contact['contact_id'];
+$query = 'SELECT 
+  civicontact.id AS civicrm_contact_id, 
+  civicontact.display_name AS civicrm_contact_display_name, 
+  civiemail.email AS civicrm_email_email 
+  FROM civicrm_contact civicontact
+  LEFT JOIN civicrm_email civiemail ON civicontact.id = civiemail.contact_id AND is_primary = %1
+  WHERE civicontact.contact_type = %2 AND 
+  civicontact.id NOT IN (SELECT contact_id FROM civicrm_group_contact WHERE group_id = %3) LIMIT %4';
+$params = array(
+  1 => array(1, 'Positive'),
+  2 => array('Individual', 'String'),
+  3 => array(EH_PROCESSED_GROUP, 'Positive'),
+  4 => array(EH_CONTACTLIMIT, 'Positive'));
+$dao = CRM_Core_DAO::executeQuery($query, $params);
+
+while ($dao->fetch()) {
+  flag_contact_as_processed($dao->civicrm_contact_id);
+  if (is_participant($dao->civicrm_contact_id) == FALSE && is_linked_to_org($dao->civicrm_contact_id) == FALSE) {
+    if (is_in_special_groups($dao->civicrm_contact_id) == TRUE) {
+      $group_members[] = $dao->civicrm_contact_id;
     }
-    if (is_contact_suspect($contact) == TRUE) {
-      $suspects[] = $contact['contact_id'];
-    }
+    if (is_contact_suspect($dao) == TRUE) {
+      if (in_array($dao->civicrm_contact_id, $group_members)) {
+        process_flag($dao->civicrm_contact_id);
+        $log_flagged[] = 'Contact ID '.$dao->civicrm_contact_id.' with name '.$dao->civicrm_contact_display_name;
+      } else {
+        process_trash($dao->civicrm_contact_id);
+        $log_trashed[] = 'Contact ID '.$dao->civicrm_contact_id.' with name '.$dao->civicrm_contact_display_name;
+      }
+      $suspects[] = $dao->civicrm_contact_id;
+    } 
   }
 }
-unset($contacts);
+echo '<h3>Log of spamcheck run, running for '.EH_CONTACTLIMIT,' contacts.</h3>';
+echo '<p>Contacts tagged as ToBeSpamChecked : </p><ul>';
+foreach ($log_flagged as $flagged) {
+  echo '<li>'.$flagged.'</li>';
+}
+echo '</ul><p>Contacts trashed : </p><ul>';
+foreach ($log_trashed as $trashed) {
+  echo '<li>'.$trashed.'</li>';
+}
+echo '</ul><p>Click <a href="'.CRM_Utils_System::url('civicrm', 'reset=1').'">here</a> to return to the CiviCRM main page</p>';
 
-foreach ($suspects as $suspect_contact_id) {
-  if (in_array($suspect_contact_id, $group_members)) {
-    process_flag($suspect_contact_id);
-    $count_flagged++;
-  } else {
-    process_trash($suspect_contact_id);
-    $count_trashed++;
-  }
+/**
+ * Function to add contact to group of processed contacts
+ * 
+ * @param int $contact_id
+ */
+
+function flag_contact_as_processed($contact_id) {
+  $params = array(
+    'group_id' => EH_PROCESSED_GROUP,
+    'contact_id' => $contact_id,
+    'status' => 'Added',
+    'version' => 3
+  );
+  civicrm_api('GroupContact', 'Create', $params);
 }
 /**
  * Function to check if contact is linked to an organization
@@ -72,7 +109,6 @@ function is_linked_to_org($contact_id) {
   $dao = CRM_Core_DAO::executeQuery($query, $params);
   if ($dao->fetch()) {
     if ($dao->count_relationship > 0) {
-      echo '<p>Contact '.$contact_id.'is linked to org</p>';      
       return TRUE;
     }
   }
@@ -81,34 +117,15 @@ function is_linked_to_org($contact_id) {
 /**
  * Function to check contact
  * 
- * @param array $contact
+ * @param object $dao
  * @return boolean $is_contact_suspect
  */
-function is_contact_suspect($contact) {
-  $is_contact_suspect = FALSE;
-  if (isset($contact['display_name'])) {
-    $is_contact_suspect = is_suspect_name($contact['display_name']);
-  }
-  if (isset($contact['email']) && $is_contact_suspect == FALSE) {
-    $is_contact_suspect = is_suspect_email($contact['email']);
+function is_contact_suspect($dao) {
+  $is_contact_suspect = is_suspect_name($dao->civicrm_contact_display_name);
+  if ($is_contact_suspect == FALSE) {
+    $is_contact_suspect = is_suspect_email($dao->civicrm_email_email);
   }
   return $is_contact_suspect;
-}
-/**
- * Function to get contacts to be checked
- */
-function get_contacts_to_be_checked() {
-  $params = array(
-    'version' => 3,
-    'is_deleted' => 0,
-    'contact_type' => 'Individual',
-    'rowCount' => EH_CONTACTLIMIT);
-  $contacts = civicrm_api('Contact', 'Get', $params);
-  if (!civicrm_error($contacts)) {
-    return $contacts['values'];
-  } else {
-    return array();
-  }
 }
 /**
  * Function to check if the contact has been participant at any event
@@ -120,7 +137,6 @@ function is_participant($contact_id) {
   $dao = CRM_Core_DAO::executeQuery($query, $params);
   if ($dao->fetch()) {
     if ($dao->count_participant > 0) {
-      echo '<p>Contact '.$contact_id.'is a participant</p>';
       return TRUE;
     }
   }
@@ -165,10 +181,12 @@ function is_suspect_email($email) {
   if (count($email_parts) > 2) {
     return TRUE;
   } else {
-    $email_second_part = split_email_second_part($email_parts[1]);
-    if (!empty($email_second_part) && in_array($email_second_part['ext'], $suspect_extensions) 
-        && in_array($email_second_part['org'], $suspect_email_orgs)) {
-        return is_suspect_name($email_parts[0]);
+    if (!empty($email_parts) && isset($email_parts[1])) {
+      $email_second_part = split_email_second_part($email_parts[1]);
+      if (!empty($email_second_part) && in_array($email_second_part['ext'], $suspect_extensions) 
+          && in_array($email_second_part['org'], $suspect_email_orgs)) {
+          return is_suspect_name($email_parts[0]);
+      }
     }
   }
   return FALSE;
