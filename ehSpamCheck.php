@@ -36,7 +36,7 @@ $count_trashed = 0;
 $contacts = get_contacts_to_be_checked();
 foreach ($contacts as $contact) {
   echo "<p>Processed contact ".$contact['contact_id']."</p>";
-  if (is_participant($contact['contact_id']) == FALSE) {
+  if (is_participant($contact['contact_id']) == FALSE && is_linked_to_org($contact['contact_id']) == FALSE) {
     if (is_in_special_groups($contact['contact_id']) == TRUE) {
       $group_members[] = $contact['contact_id'];
     }
@@ -55,6 +55,27 @@ foreach ($suspects as $suspect_contact_id) {
     process_trash($suspect_contact_id);
     $count_trashed++;
   }
+}
+/**
+ * Function to check if contact is linked to an organization
+ * 
+ * @param int $contact_id
+ * @return boolean
+ */
+function is_linked_to_org($contact_id) {
+  $query = 'SELECT COUNT(*) AS count_relationship FROM civicrm_relationship WHERE '
+    . 'relationship_type_id = %1 AND contact_id_a = %2';
+  $params = array(
+    1 => array(4, 'Positive'),
+    2 => array($contact_id, 'Positive')
+  );
+  $dao = CRM_Core_DAO::executeQuery($query, $params);
+  if ($dao->fetch()) {
+    if ($dao->count_relationship > 0) {
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 /**
  * Function to check contact
